@@ -1,6 +1,7 @@
 package com.artillexstudios.axgraves.commands;
 
 import com.artillexstudios.axapi.utils.StringUtils;
+import com.artillexstudios.axgraves.commands.subcommands.SubCommandBypass;
 import com.artillexstudios.axgraves.commands.subcommands.SubCommandList;
 import com.artillexstudios.axgraves.commands.subcommands.SubCommandReload;
 import com.artillexstudios.axgraves.commands.subcommands.SubCommandTeleport;
@@ -42,5 +43,11 @@ public class Commands {
     @CommandPermission("axgraves.tp")
     public void tp(@NotNull Player sender, World world, double x, double y, double z) {
         SubCommandTeleport.INSTANCE.subCommand(sender, world, x, y, z);
+    }
+
+    @Subcommand("bypass")
+    @CommandPermission("axgraves.bypass")
+    public void bypass(@NotNull CommandSender sender) {
+        SubCommandBypass.INSTANCE.subCommand(sender);
     }
 }

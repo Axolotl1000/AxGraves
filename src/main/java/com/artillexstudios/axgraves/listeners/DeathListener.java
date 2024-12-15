@@ -1,5 +1,6 @@
 package com.artillexstudios.axgraves.listeners;
 
+import com.artillexstudios.axgraves.AxGraves;
 import com.artillexstudios.axgraves.api.events.GravePreSpawnEvent;
 import com.artillexstudios.axgraves.api.events.GraveSpawnEvent;
 import com.artillexstudios.axgraves.grave.Grave;
@@ -24,6 +25,8 @@ public class DeathListener implements Listener {
         if (!CONFIG.getBoolean("override-keep-inventory", true) && event.getKeepInventory()) return;
 
         final Player player = event.getEntity();
+
+        if (AxGraves.bypassedPlayers.contains(player.getUniqueId())) return;
 
         if (player.getLastDamageCause() != null && CONFIG.getStringList("blacklisted-death-causes").contains(player.getLastDamageCause().getCause().name())) return;
         if (player.getInventory().isEmpty() && player.getTotalExperience() == 0) return;

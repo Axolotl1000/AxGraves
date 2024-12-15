@@ -17,10 +17,17 @@ import com.artillexstudios.axgraves.listeners.PlayerInteractListener;
 import com.artillexstudios.axgraves.schedulers.SaveGraves;
 import com.artillexstudios.axgraves.schedulers.TickGraves;
 import com.artillexstudios.axgraves.utils.UpdateNotifier;
-import org.bstats.bukkit.Metrics;
 import revxrsal.commands.bukkit.BukkitCommandHandler;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.OpenOption;
+import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -30,6 +37,7 @@ public final class AxGraves extends AxPlugin {
     public static Config MESSAGES;
     public static MessageUtils MESSAGEUTILS;
     public static ScheduledExecutorService EXECUTOR = Executors.newSingleThreadScheduledExecutor();
+    public static final Set<UUID> bypassedPlayers = new HashSet<>();
 
     public static AxPlugin getInstance() {
         return instance;
@@ -38,11 +46,24 @@ public final class AxGraves extends AxPlugin {
     public void enable() {
         instance = this;
 
-        int pluginId = 20332;
-        new Metrics(this, pluginId);
-
         CONFIG = new Config(new File(getDataFolder(), "config.yml"), getResource("config.yml"), GeneralSettings.builder().setUseDefaults(false).build(), LoaderSettings.builder().setAutoUpdate(true).build(), DumperSettings.DEFAULT, UpdaterSettings.builder().setVersioning(new BasicVersioning("version")).build());
         MESSAGES = new Config(new File(getDataFolder(), "messages.yml"), getResource("messages.yml"), GeneralSettings.builder().setUseDefaults(false).build(), LoaderSettings.builder().setAutoUpdate(true).build(), DumperSettings.DEFAULT, UpdaterSettings.builder().setVersioning(new BasicVersioning("version")).build());
+        Path bypassPath = getDataFolder().toPath().resolve("bypass");
+        try {
+            if (Files.exists(bypassPath)) {
+                Files.readAllLines(bypassPath, StandardCharsets.UTF_8).forEach(uuid -> {
+                    if (uuid.isEmpty()) return;
+                    try {
+                        bypassedPlayers.add(UUID.fromString(uuid));
+                    } catch (IllegalArgumentException ignored) {}
+                });
+            } else {
+                Files.createFile(bypassPath);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
 
         MESSAGEUTILS = new MessageUtils(MESSAGES.getBackingDocument(), "prefix", CONFIG.getBackingDocument());
 
@@ -64,6 +85,17 @@ public final class AxGraves extends AxPlugin {
     public void disable() {
         TickGraves.stop();
         SaveGraves.stop();
+
+        try {
+            Path bypassPath = getDataFolder().toPath().resolve("bypass");
+            Files.delete(bypassPath);
+            StringBuilder sb = new StringBuilder();
+            bypassedPlayers.forEach(uuid -> sb.append(uuid).append("\n"));
+            Files.writeString(bypassPath, sb.toString());
+        } catch (IOException e) {
+            getLogger().severe("Could not save bypassed players.");
+            e.printStackTrace(System.err);
+        }
 
         for (Grave grave : SpawnedGraves.getGraves()) {
             if (!CONFIG.getBoolean("save-graves.enabled", true))

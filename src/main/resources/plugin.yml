@@ -17,3 +17,5 @@ permissions:
     default: op
   axgraves.tp.bypass:
     default: op
+  axgraves.bypass:
+    default: true
